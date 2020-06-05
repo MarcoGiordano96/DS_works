@@ -66,8 +66,10 @@ mh <- get_timeline("MattHancock",n = 3200, includeRts = FALSE)
 #Ed Miliband
 em <- get_timeline("Ed_Miliband",n = 3200, includeRts = FALSE)
 
-#lab_party <- get_timeline("UKLabour", n = 3200, includeRts = FALSE)
+#Labour party
+lab_party <- get_timeline("UKLabour", n = 3200, includeRts = FALSE)
 
+#Conservatives party
 cons <- get_timeline("Conservatives", n = 3200, includeRts = FALSE)
 
 
