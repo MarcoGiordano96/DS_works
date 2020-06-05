@@ -20,11 +20,11 @@ library(caret)
 #-----------------------------AUTHENTICATE YOURSELF TO TWITTER---------------------------------
 
 #authentication
-api_key <- "5BhgcDA6wpGAPxr8vWMJBCHGa"
-api_secret_key <- "pTMTfGQuxEjqLEkbLBwIQSXcNQrv9bpkTEycbjaPcGfhHCixzT"
+api_key <- "value"
+api_secret_key <- "value"
 
 token <- create_token(
-  app = "M_G_Sent",
+  app = "app_name",
   consumer_key = api_key,
   consumer_secret = api_secret_key)
 
@@ -33,42 +33,42 @@ token
 #--------------------------TWITTER API CALLS---------------------------------------------------
 
 #retrieve last 3200 tweets from UK politicians
-# bj <- get_timeline("BorisJohnson", n = 3200, includeRts = FALSE)
+bj <- get_timeline("BorisJohnson", n = 3200, includeRts = FALSE)
 # 
 #Theresa May
-# tm <- get_timeline("theresa_may", n = 3200, includeRts = FALSE)
+m <- get_timeline("theresa_may", n = 3200, includeRts = FALSE)
 # 
 #David Cameron
-#dc <- get_timeline("David_Cameron", n = 3200, includeRts = FALSE)
+dc <- get_timeline("David_Cameron", n = 3200, includeRts = FALSE)
 # 
 #Jeremy Corbin
-#jc <- get_timeline("jeremycorbyn", n = 3200, includeRts = FALSE)
+jc <- get_timeline("jeremycorbyn", n = 3200, includeRts = FALSE)
 # 
 #Nigel Farage
-# nf <- get_timeline("Nigel_Farage", n = 3200, includeRts = FALSE)
+nf <- get_timeline("Nigel_Farage", n = 3200, includeRts = FALSE)
 # 
 #Rishi Sunak
-# rs <- get_timeline("RishiSunak", n = 3200, includeRts = FALSE)
+rs <- get_timeline("RishiSunak", n = 3200, includeRts = FALSE)
 # 
 #Sadiq Khan
-# sk <- get_timeline("SadiqKhan",n = 3200, includeRts = FALSE)
+sk <- get_timeline("SadiqKhan",n = 3200, includeRts = FALSE)
 # 
 # 
 #Dominic Raab
-# dr <- get_timeline("DominicRaab",n = 3200, includeRts = FALSE)
+dr <- get_timeline("DominicRaab",n = 3200, includeRts = FALSE)
 # 
 #Nicola Sturgeon
-# ns <- get_timeline("NicolaSturgeon",n = 3200, includeRts = FALSE)
+ns <- get_timeline("NicolaSturgeon",n = 3200, includeRts = FALSE)
 # 
 #Matt Hancock
-# mh <- get_timeline("MattHancock",n = 3200, includeRts = FALSE)
+mh <- get_timeline("MattHancock",n = 3200, includeRts = FALSE)
 # 
 #Ed Miliband
-# em <- get_timeline("Ed_Miliband",n = 3200, includeRts = FALSE)
+em <- get_timeline("Ed_Miliband",n = 3200, includeRts = FALSE)
 
 #lab_party <- get_timeline("UKLabour", n = 3200, includeRts = FALSE)
 
-#cons <- get_timeline("Conservatives", n = 3200, includeRts = FALSE)
+cons <- get_timeline("Conservatives", n = 3200, includeRts = FALSE)
 
 
 
