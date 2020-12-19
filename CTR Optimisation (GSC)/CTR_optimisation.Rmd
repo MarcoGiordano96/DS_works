@@ -2,7 +2,11 @@
 title: "CTR_optimization"
 author: "Marco Giordano"
 date: "12/18/2020"
+<<<<<<< HEAD
 output: html_document
+=======
+output: github_document
+>>>>>>> parent of c14e212... Delete CTR_optimisation.Rmd
 ---
 
 ```{r setup, include=FALSE}
