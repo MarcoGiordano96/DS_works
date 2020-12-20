@@ -20,6 +20,7 @@ library(randomForest)
 library(tidyverse)
 library(ggplot2)
 library(corrplot)
+library(caret)
 setwd('~/Desktop')
 gsc_queries_all <- readRDS('sample_gsc')
 ```
@@ -37,15 +38,12 @@ summary(gsc_queries_all[,-c(1:3)])
 # Data Cleaning
 
 Even though data extracted from GSC API are in a tidy format, there are some fixes to do before we start with our analysis. For instance, details about the date, the query and the page are not requested to predict the CTR. Hence, we remove them and create a new data set without them.
-Moreover, we perform scaling on all the variables that will be used as predictors to ensure they are in the same scale. 
 
 ```{r Data Cleaning, echo=FALSE}
 gsc <- gsc_queries_all[,-c(1:3)]
 
 gsc <- gsc %>%
    select(-ctr) %>%
-   scale() %>%
-   as.data.frame() %>%
    cbind(gsc_queries_all$ctr) 
 
 colnames(gsc)[4] <- "ctr"
@@ -56,7 +54,7 @@ colnames(gsc)[4] <- "ctr"
 
 Although the data set is not particularly rich in terms of covariates, we can still visualize something to understand its composition. 
 
-```{r}
+```{r 2D Bin}
 ggplot(gsc_queries_all, aes(clicks, ctr)) +
   geom_bin2d(bins = 20, color = "white") +
   scale_fill_gradient(low =  "#00AFBB", high = "#FC4E07")+
@@ -68,7 +66,7 @@ We can use a 2D bin plot to check the relationship between clicks and CTR. It se
 
 To investigate this phenomenon, we can visualize the click distribution, we can use an histogram. We decided to use a vertical line to show the median value, which was 2.00 (check summary). 
 
-```{r}
+```{r Clicks distribution}
 ggplot(gsc_queries_all, aes(clicks, fill = "red", color = "black")) +
   geom_histogram() +
   geom_vline(xintercept = median(gsc_queries_all$clicks), color = "black") +
@@ -85,7 +83,7 @@ conservative and avoiding overestimating the position.
 As said in the introduction, CTR varies with position. In our 3-month sample, we can notice that getting the 1st position was crucial in terms of mean CTR and we can easily state that this is similar to what is reported by SEO studies about the relationship between position 
 and CTR. Please, note that pages at position 8 got even more than those at 6/7 and as much as 5 in our example. This also tells that aiming for the top spots is truly beneficial, since there is a clear gap in the first 3 positions and even more among position 1 and the rest.
 
-```{r}
+```{r Mean CTR by Average Position}
 colors = c("red", "blue", "orange", "yellow", "purple", "lightblue", "pink", "green")
   
 gsc_queries_all %>% 
@@ -110,7 +108,7 @@ gsc_queries_all %>%
 
 We check the correlation matrix to see if there are meaningful associations between variables. We expected a strong correlation between clicks or impressions and CTR, but the results tell us the opposite.
 
-```{r}
+```{r Correlation Plot}
 col <- colorRampPalette(c("#BB4444", "#EE9988", "#FFFFFF", "#77AADD", "#4477AA"))
 
 p.mat <- cor.mtest(gsc)$p
@@ -130,7 +128,7 @@ The negative correlation between CTR and position is also sound because a lower 
 
 Before we start training any model, we need to create a train/test split to avoid overfitting. We will use a 75/25 ratio, chosen arbitrarily and we should have enough data to train a model. To do this, we simply create a Uniform distribution which stores 
 
-```{r}
+```{r Train/Test split}
 set.seed(55744747)
 gp <- runif(nrow(gsc))
 
@@ -138,11 +136,24 @@ train_gsc <- gsc[gp < 0.75,]
 test_gsc <- gsc[gp >= 0.75,]
 ```
 
+
+After the train/test split, we can scale our two sets to adjust their scale and make algorithms life easier. We use a function from the caret package to process data from the training data set and then apply the same preprocessing to the test data set. 
+
+```{r Scale data}
+preProcValues <- preProcess(train_gsc[-4], method = c("center", "scale"))
+
+train_gsc[-4] <- predict(preProcValues, train_gsc[-4])
+test_gsc[-4] <- predict(preProcValues, test_gsc[-4])
+
+```
+
+
+
 ## Linear Regression
 
 We start with the most basic model to assess its accuracy. I suppose that this model won't lead to good results because I suspect that the relationship is not linear at all!
 
-```{r}
+```{r Perform Linear Regression}
 lm_mod <- lm(ctr ~ ., data = train_gsc)
 train_gsc$pred <- predict(lm_mod, train_gsc)
 test_gsc$pred <- predict(lm_mod, test_gsc)
@@ -155,7 +166,7 @@ summary(lm_mod)
 
 We can visualize our results to assess how well the regression line fits the data points.
 
-```{r}
+```{r Linear Regression}
 ggplot(test_gsc, aes(pred, ctr)) +
   geom_point(alpha = 0.2, color = "darkgray") +
   geom_smooth(color = "darkblue") +
@@ -189,7 +200,7 @@ The previous result is very disappointing, so we go for an ensemble method that 
 
 ```{r}
 set.seed(55744747)
-rand_gsc <- randomForest(ctr ~., data = train_gsc, importance = TRUE)
+rand_gsc <- randomForest(ctr ~., data = train_gsc, importance = TRUE, ntree = 13)
 
 train_gsc$pred <- predict(rand_gsc, train_gsc)
 test_gsc$pred <- predict(rand_gsc, test_gsc)
@@ -202,10 +213,20 @@ summary(rand_gsc)
 ```
 
 
+
+
+```{r Error vs Number of Trees - RF}
+plot(rand_gsc, main = "Random Forest")
+```
+
+
+
+
+
 After we fit the model, it is important to create new columns for the predicted values in both the two sets. However, remind that we will only use values from the test data set later on!
 
 
-```{r}
+```{r Variable importance - RF}
 varImp <- importance(rand_gsc)
 varImpPlot(rand_gsc, type = 1)
 ```
@@ -228,7 +249,7 @@ RMSE_test<- sqrt(mean( (test_gsc$ctr - test_gsc$pred)^2 ))
 
 We cold try to improve the performance of our RM model by tuning the mtry (i.e. number of variables randomly sampled as candidate at each split) hyperparameter, if we had more features to work with. We should not see that much difference in this example, since we just have 3 covariates and the default value for regression is set to p/3, where p is the number of features.
 
-```{r}
+```{r Hyperparameter tuning - RF}
 mtry <- tuneRF(train_gsc[, -4],train_gsc$ctr, ntreeTry=500,
                stepFactor=1.5,improve=0.05, trace=TRUE, plot=TRUE)
 ```

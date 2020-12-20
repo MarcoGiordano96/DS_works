@@ -46,8 +46,7 @@ Even though data extracted from GSC API are in a tidy format, there are
 some fixes to do before we start with our analysis. For instance,
 details about the date, the query and the page are not requested to
 predict the CTR. Hence, we remove them and create a new data set without
-them. Moreover, we perform scaling on all the variables that will be
-used as predictors to ensure they are in the same scale.
+them.
 
 ## Plotting
 
@@ -61,7 +60,7 @@ ggplot(gsc_queries_all, aes(clicks, ctr)) +
   theme_minimal()
 ```
 
-![](CTR_optimisation_files/figure-gfm/unnamed-chunk-2-1.png)<!-- -->
+![](CTR_optimisation_files/figure-gfm/2D%20Bin-1.png)<!-- -->
 
 We can use a 2D bin plot to check the relationship between clicks and
 CTR. It seems that a lot of articles with high CTR tend to have low
@@ -87,7 +86,7 @@ ggplot(gsc_queries_all, aes(clicks, fill = "red", color = "black")) +
 
     ## Warning: Removed 2 rows containing missing values (geom_bar).
 
-![](CTR_optimisation_files/figure-gfm/unnamed-chunk-3-1.png)<!-- -->
+![](CTR_optimisation_files/figure-gfm/Clicks%20distribution-1.png)<!-- -->
 
 It is pretty clear that the distribution is very skewed to the right and
 50% of our pages for some queries receive more than 2 clicks. This also
@@ -130,7 +129,7 @@ gsc_queries_all %>%
 
     ## `summarise()` ungrouping output (override with `.groups` argument)
 
-![](CTR_optimisation_files/figure-gfm/unnamed-chunk-4-1.png)<!-- -->
+![](CTR_optimisation_files/figure-gfm/Mean%20CTR%20by%20Average%20Position-1.png)<!-- -->
 
 ## Measuring correlation among variables
 
@@ -151,14 +150,14 @@ corrplot(cor(gsc), , method = "color", col = col(200),
          diag = FALSE)
 ```
 
-![](CTR_optimisation_files/figure-gfm/unnamed-chunk-5-1.png)<!-- --> CTR
-is negatively correlated to clicks but the value is close to 0, so it’s
-not that relevant. On contrary, there is a weak negative correlation
-between impressions and CTR, which makes sense, because CTR is inversely
-proportional to impressions. The negative correlation between CTR and
-position is also sound because a lower position is usually associated
-with a higher CTR. Be careful however, correlation doesn’t imply
-causation, we are just talking about linear association.
+![](CTR_optimisation_files/figure-gfm/Correlation%20Plot-1.png)<!-- -->
+CTR is negatively correlated to clicks but the value is close to 0, so
+it’s not that relevant. On contrary, there is a weak negative
+correlation between impressions and CTR, which makes sense, because CTR
+is inversely proportional to impressions. The negative correlation
+between CTR and position is also sound because a lower position is
+usually associated with a higher CTR. Be careful however, correlation
+doesn’t imply causation, we are just talking about linear association.
 
 ## Train/Test split
 
@@ -173,6 +172,18 @@ gp <- runif(nrow(gsc))
 
 train_gsc <- gsc[gp < 0.75,]
 test_gsc <- gsc[gp >= 0.75,]
+```
+
+After the train/test split, we can scale our two sets to adjust their
+scale and make algorithms life easier. We use a function from the caret
+package to process data from the training data set and then apply the
+same preprocessing to the test data set.
+
+``` r
+preProcValues <- preProcess(train_gsc[-4], method = c("center", "scale"))
+
+train_gsc[-4] <- predict(preProcValues, train_gsc[-4])
+test_gsc[-4] <- predict(preProcValues, test_gsc[-4])
 ```
 
 ## Linear Regression
@@ -201,10 +212,10 @@ summary(lm_mod)
     ## 
     ## Coefficients:
     ##              Estimate Std. Error t value Pr(>|t|)    
-    ## (Intercept)  0.478690   0.002317 206.612   <2e-16 ***
-    ## clicks       0.004413   0.002366   1.865   0.0622 .  
-    ## impressions -0.042336   0.002113 -20.035   <2e-16 ***
-    ## position    -0.069991   0.002410 -29.040   <2e-16 ***
+    ## (Intercept)  0.478480   0.002317 206.525   <2e-16 ***
+    ## clicks       0.004460   0.002392   1.865   0.0622 .  
+    ## impressions -0.047831   0.002387 -20.035   <2e-16 ***
+    ## position    -0.067569   0.002327 -29.040   <2e-16 ***
     ## ---
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
     ## 
@@ -224,7 +235,7 @@ ggplot(test_gsc, aes(pred, ctr)) +
 
     ## `geom_smooth()` using method = 'gam' and formula 'y ~ s(x, bs = "cs")'
 
-![](CTR_optimisation_files/figure-gfm/unnamed-chunk-9-1.png)<!-- -->
+![](CTR_optimisation_files/figure-gfm/Linear%20Regression-1.png)<!-- -->
 
 The result is awful but that’s perfectly fine, our hypothesis that
 linear models are not suitable is confirmed. We need something that can
@@ -264,7 +275,7 @@ repeatable by setting a seed value.
 
 ``` r
 set.seed(55744747)
-rand_gsc <- randomForest(ctr ~., data = train_gsc, importance = TRUE)
+rand_gsc <- randomForest(ctr ~., data = train_gsc, importance = TRUE, ntree = 13)
 
 train_gsc$pred <- predict(rand_gsc, train_gsc)
 test_gsc$pred <- predict(rand_gsc, test_gsc)
@@ -275,11 +286,11 @@ summary(rand_gsc)
 ```
 
     ##                 Length Class  Mode     
-    ## call                4  -none- call     
+    ## call                5  -none- call     
     ## type                1  -none- character
     ## predicted       18684  -none- numeric  
-    ## mse               500  -none- numeric  
-    ## rsq               500  -none- numeric  
+    ## mse                13  -none- numeric  
+    ## rsq                13  -none- numeric  
     ## oob.times       18684  -none- numeric  
     ## importance          8  -none- numeric  
     ## importanceSD        4  -none- numeric  
@@ -294,6 +305,12 @@ summary(rand_gsc)
     ## inbag               0  -none- NULL     
     ## terms               3  terms  call
 
+``` r
+plot(rand_gsc, main = "Random Forest")
+```
+
+![](CTR_optimisation_files/figure-gfm/Error%20vs%20Number%20of%20Trees%20-%20RF-1.png)<!-- -->
+
 After we fit the model, it is important to create new columns for the
 predicted values in both the two sets. However, remind that we will only
 use values from the test data set later on\!
@@ -303,7 +320,7 @@ varImp <- importance(rand_gsc)
 varImpPlot(rand_gsc, type = 1)
 ```
 
-![](CTR_optimisation_files/figure-gfm/unnamed-chunk-13-1.png)<!-- -->
+![](CTR_optimisation_files/figure-gfm/Variable%20importance%20-%20RF-1.png)<!-- -->
 
 You may want to take a look at the importance of the variables according
 to Random Forest. We used the percentage of increase in MSE when a given
@@ -336,11 +353,11 @@ mtry <- tuneRF(train_gsc[, -4],train_gsc$ctr, ntreeTry=500,
                stepFactor=1.5,improve=0.05, trace=TRUE, plot=TRUE)
 ```
 
-    ## mtry = 1  OOB error = 0.001084383 
+    ## mtry = 1  OOB error = 0.001231441 
     ## Searching left ...
     ## Searching right ...
 
-![](CTR_optimisation_files/figure-gfm/unnamed-chunk-15-1.png)<!-- -->
+![](CTR_optimisation_files/figure-gfm/Hyperparameter%20tuning%20-%20RF-1.png)<!-- -->
 
 As expected, the best value for mtry (based on OoB error) is 1, which is
 already in use when building a model. Consider that this step is
