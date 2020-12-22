@@ -7,8 +7,8 @@ Marco Giordano
 
 This project is just an example of how it is possible to predict the CTR
 of a website by using Google Search Console data, extracted via Google
-API. The presented example can be considered as a “toy model”, in the
-sense that it is just a demonstration to show the method on a relatively
+API. What we present can be considered as a “toy example”, in the sense
+that it is just a demonstration to show two methods on a relatively
 small dataset. The main reason to predict CTR via Machine Learning
 techniques is because SEO Specialists usually decide what to optimize by
 looking at pages with high Impressions and low CTR. However, this method
@@ -17,6 +17,9 @@ is obviously biased, since CTR varies with position\!
 I try to test some popular methods to predict the CTR, given a small
 sample of 25K rows from 3 months from Google Search Console, in order to
 create a better way to make decisions on what could be optimized.
+
+\[Original source\]
+(<https://understandingdata.com/ctr-optimisation-with-machine-learning/>)
 
 ## Descriptive Statistics
 
@@ -43,7 +46,7 @@ summary(gsc_queries_all[,-c(1:3)])
 # Data Cleaning
 
 Even though data extracted from GSC API are in a tidy format, there are
-some fixes to do before we start with our analysis. For instance,
+some small fixes to do before we start with our analysis. For instance,
 details about the date, the query and the page are not requested to
 predict the CTR. Hence, we remove them and create a new data set without
 them.
@@ -164,7 +167,7 @@ doesn’t imply causation, we are just talking about linear association.
 Before we start training any model, we need to create a train/test split
 to avoid overfitting. We will use a 75/25 ratio, chosen arbitrarily and
 we should have enough data to train a model. To do this, we simply
-create a Uniform distribution which stores
+create a random variable to group and partition data.
 
 ``` r
 set.seed(55744747)
@@ -177,7 +180,8 @@ test_gsc <- gsc[gp >= 0.75,]
 After the train/test split, we can scale our two sets to adjust their
 scale and make algorithms life easier. We use a function from the caret
 package to process data from the training data set and then apply the
-same preprocessing to the test data set.
+same preprocessing to the test data set. Be careful, as you need to
+scale test data by what seen in train data\!
 
 ``` r
 preProcValues <- preProcess(train_gsc[-4], method = c("center", "scale"))
@@ -190,12 +194,13 @@ test_gsc[-4] <- predict(preProcValues, test_gsc[-4])
 
 We start with the most basic model to assess its accuracy. I suppose
 that this model won’t lead to good results because I suspect that the
-relationship is not linear at all\!
+relationship is not linear at all, although linear regression allows for
+interpolation. We can directly fit a model with all the covariates.
 
 ``` r
 lm_mod <- lm(ctr ~ ., data = train_gsc)
-train_gsc$pred <- predict(lm_mod, train_gsc)
-test_gsc$pred <- predict(lm_mod, test_gsc)
+train_Preds <- predict(lm_mod, train_gsc)
+Preds <- predict(lm_mod, test_gsc)
 ```
 
 ``` r
@@ -223,11 +228,15 @@ summary(lm_mod)
     ## Multiple R-squared:  0.06584,    Adjusted R-squared:  0.06569 
     ## F-statistic: 438.9 on 3 and 18680 DF,  p-value: < 2.2e-16
 
+By taking a quick look at the summary, we can clearly notice that
+converting variables to log or doing feature engineering would be a
+waste of time.
+
 We can visualize our results to assess how well the regression line fits
 the data points.
 
 ``` r
-ggplot(test_gsc, aes(pred, ctr)) +
+ggplot(test_gsc, aes(Preds, ctr)) +
   geom_point(alpha = 0.2, color = "darkgray") +
   geom_smooth(color = "darkblue") +
   geom_line(aes(ctr, ctr), color = "blue", linetype = 2) 
@@ -255,16 +264,30 @@ residuals and refers to the absolute fit of the model to the data. It
 tells us the accuracy with which our model predicts the response and it
 is very important for our goal, namely prediction.
 
-``` r
-R2_train <- 1 - (sum((train_gsc$ctr-train_gsc$pred)^2)/sum((train_gsc$ctr-mean(train_gsc$ctr))^2))
-R2_test <- 1 - (sum((test_gsc$ctr-test_gsc$pred)^2)/sum((test_gsc$ctr-mean(test_gsc$ctr))^2))
-
-RMSE_train <- sqrt(mean( (train_gsc$ctr - train_gsc$pred)^2 ))
-RMSE_test<- sqrt(mean( (test_gsc$ctr - test_gsc$pred)^2 ))
-```
-
 Both the two metrics for each of the 2 sets display totally unacceptable
 values, in line with what we saw before.
+
+``` r
+reg_rmse_train <- rmse(train_gsc$ctr, train_Preds, name = "prova")
+reg_rmse_test <- format(rmse(test_gsc$ctr, Preds), digits = 3)
+title <- "Linear Regression metrics"
+df_visual <- cbind(title, reg_rmse_test)
+```
+
+``` r
+library(pander)
+
+panderOptions("plain.ascii", TRUE)
+panderOptions("keep.trailing.zeros", TRUE)
+panderOptions("table.style", "simple")
+perf_justify <- "lrrr"
+
+perftable <- rbind(reg_rmse_train)
+perftable
+```
+
+    ##                     [,1]
+    ## reg_rmse_train 0.3166501
 
 ## Random Forest
 
@@ -275,11 +298,15 @@ repeatable by setting a seed value.
 
 ``` r
 set.seed(55744747)
-rand_gsc <- randomForest(ctr ~., data = train_gsc, importance = TRUE, ntree = 13)
+rand_gsc <- randomForest(ctr ~., data = train_gsc, importance = TRUE, ntree = 500)
 
 train_gsc$pred <- predict(rand_gsc, train_gsc)
 test_gsc$pred <- predict(rand_gsc, test_gsc)
 ```
+
+After we fit the model, it is important to create new columns for the
+predicted values in both the two sets. However, remind that we will only
+use values from the test data set later on\!
 
 ``` r
 summary(rand_gsc)
@@ -289,11 +316,11 @@ summary(rand_gsc)
     ## call                5  -none- call     
     ## type                1  -none- character
     ## predicted       18684  -none- numeric  
-    ## mse                13  -none- numeric  
-    ## rsq                13  -none- numeric  
+    ## mse               500  -none- numeric  
+    ## rsq               500  -none- numeric  
     ## oob.times       18684  -none- numeric  
-    ## importance          8  -none- numeric  
-    ## importanceSD        4  -none- numeric  
+    ## importance          6  -none- numeric  
+    ## importanceSD        3  -none- numeric  
     ## localImportance     0  -none- NULL     
     ## proximity           0  -none- NULL     
     ## ntree               1  -none- numeric  
@@ -310,17 +337,12 @@ plot(rand_gsc, main = "Random Forest")
 ```
 
 ![](CTR_optimisation_files/figure-gfm/Error%20vs%20Number%20of%20Trees%20-%20RF-1.png)<!-- -->
-
-After we fit the model, it is important to create new columns for the
-predicted values in both the two sets. However, remind that we will only
-use values from the test data set later on\!
-
-``` r
-varImp <- importance(rand_gsc)
-varImpPlot(rand_gsc, type = 1)
-```
-
-![](CTR_optimisation_files/figure-gfm/Variable%20importance%20-%20RF-1.png)<!-- -->
+As you can see above, After \~10 trees, error starts to increase and
+then flatten as we move towards 500. We could also optimize the number
+of trees used by setting a lower number but the model is already fine
+this way. Please consider to test different combinations if you need to
+get better results. In our case, we could just reduce the number of
+tress to increase the speed of our algorithm.
 
 You may want to take a look at the importance of the variables according
 to Random Forest. We used the percentage of increase in MSE when a given
@@ -330,6 +352,13 @@ either didn’t show any strong correlation with CTR at the beginning of
 our analysis. In cases where you have a lot of variables, you can
 consider using this screening procedure to pick the most important
 variables and work with a smaller feature set.
+
+``` r
+varImp <- importance(rand_gsc)
+varImpPlot(rand_gsc, type = 1, main = "Variable Importance")
+```
+
+![](CTR_optimisation_files/figure-gfm/Variable%20importance%20-%20RF-1.png)<!-- -->
 
 ``` r
 R2_train <- 1 - (sum((train_gsc$ctr-train_gsc$pred)^2)/sum((train_gsc$ctr-mean(train_gsc$ctr))^2))
@@ -353,7 +382,7 @@ mtry <- tuneRF(train_gsc[, -4],train_gsc$ctr, ntreeTry=500,
                stepFactor=1.5,improve=0.05, trace=TRUE, plot=TRUE)
 ```
 
-    ## mtry = 1  OOB error = 0.001231441 
+    ## mtry = 1  OOB error = 0.001592572 
     ## Searching left ...
     ## Searching right ...
 
@@ -404,8 +433,21 @@ final_df <- final_df %>%
   group_by(page) %>%
   arrange(desc(diff_perc)) %>%
   ungroup() %>%
-  select(-c(clicks.x, impressions.x, ctr.x, position.x))
+  select(-c(clicks.x, impressions.x, ctr.x, position.x)) %>%
+  relocate(diff_perc, .after = last_col())
 ```
+
+We will show how our final data set looks like by taking a peak at only
+the first row since these data are private.
+
+``` r
+head(final_df, 1)
+```
+
+    ## # A tibble: 1 x 5
+    ##   query                page                                 pred   ctr diff_perc
+    ##   <chr>                <chr>                               <dbl> <dbl>     <dbl>
+    ## 1 schemi halloween an… https://ilovevg.it/2020/09/animal-…  39.5  5.88      33.6
 
 Now, we are ready for some interpretation of the results. Our interest
 is the column of the percentage difference, necessary to understand what
@@ -427,3 +469,16 @@ to avoid comparing different data and most likely ranges.
 Future improvements may include expanding the original data set with
 other sources, such as Screaming Frog, Google Analytics or other SEO
 tools (ie. SEMRush or Hrefs).
+
+## What’s next and what to consider
+
+Random Forest cannot do extrapolation, since the average of samples
+cannot fall outside their ranges. For this reason, you should totally
+avoid applying this kind of model to new data that fall outside the
+range on which you trained. Linear Regression can extrapolate data but
+it performed really poorly and it is not a viable option.
+
+Nonetheless, there are some solutions to try next, for instance neural
+nets, SVM Regression or Regression-Enhanced Random Forests. The
+possibility to extrapolate data is something that may improve your CTR
+optimization process.
