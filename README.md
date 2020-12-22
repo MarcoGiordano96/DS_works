@@ -1,4 +1,4 @@
-# DS_works
+# Data Science Portfolio
 [WIP, this repository is currently incomplete and will be updated again to store my projects]
 Repository containing my Data Science projects done for university, self-learning and other projects I took part in. The main language used is R, presented in form of R markdown.
 
