@@ -22,7 +22,6 @@ library(randomForest)
 library(tidyverse)
 library(ggplot2)
 library(corrplot)
-library(gt)
 library(stargazer)
 library(caret)
 library(ModelMetrics)
@@ -205,12 +204,10 @@ Reg_visual <- tibble(
   R_squared = c(reg_R2_train, reg_R2_test)
 )
 
-Reg_visual %>%
-  gt() %>%
-  tab_header(
-    title = md("Summary table for Linear Regression metrics")
-  )
+Reg_visual
 ```
+
+You can produce more visually appealing results with the gt package, but we avoided it due to problems with GitHub rendering.
 
 
 ## Random Forest
@@ -262,12 +259,7 @@ RF_visual <- tibble(
   R_squared = c(R2_train, R2_test)
 )
 
-RF_visual %>%
-  gt() %>%
-  tab_header(
-    title = md("Summary table for Random Forest metrics")
-  )
-
+RF_visual 
 ```
 
 
@@ -287,11 +279,8 @@ visual <- tibble(
   RMSE = c(reg_rmse_train, reg_rmse_test, RMSE_train, RMSE_test),
   R_squared = c(reg_R2_train, reg_R2_test, R2_train, R2_test)
 )
-visual %>%
-  gt() %>%
-  tab_header(
-    title = md("Summary table with model metrics")
-  )
+
+visual
 ```
 
 
