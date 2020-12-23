@@ -1,5 +1,5 @@
 ---
-title: "CTR_optimization"
+title: "CTR Optimization with the aid of Machine Learning"
 author: "Marco Giordano"
 date: "12/18/2020"
 output: github_document
@@ -23,6 +23,7 @@ library(tidyverse)
 library(ggplot2)
 library(corrplot)
 library(gt)
+library(stargazer)
 library(caret)
 library(ModelMetrics)
 ```
@@ -48,7 +49,7 @@ summary(gsc_queries_all[,-c(1:3)])
 
 Even though data extracted from GSC API are in a tidy format, there are some small fixes to do before we start with our analysis. For instance, details about the date, the query and the page are not requested to predict the CTR. Hence, we remove them and create a new data set without them.
 
-```{r Data Cleaning, echo=FALSE}
+```{r Data Cleaning}
 gsc <- gsc_queries_all[,-c(1:3)]
 gsc <- gsc %>%
    select(-ctr) %>%
@@ -57,7 +58,7 @@ colnames(gsc)[4] <- "ctr"
 ```
 
 
-## Plotting
+## (Short) Exploratory Data Analysis
 
 Although the data set is not particularly rich in terms of covariates, we can still visualize something to understand its composition. 
 
@@ -84,8 +85,7 @@ ggplot(gsc_queries_all, aes(clicks, fill = "red", color = "black")) +
 
 It is pretty clear that the distribution is very skewed to the right and 50% of our pages for some queries receive more than 2 clicks. This also translate to 50% of the pages receiving less than 2 clicks, which is coherent with what we found before.
 
-We are interested in getting position as a categorical variable just to plot it. Recall that the position on SERP cannot be continuous, but GSC gives you the average position! We used the ceiling function to round values to the next integer. We didn't use floor to be more 
-conservative and avoiding overestimating the position. 
+We are interested in getting position as a categorical variable just to plot it. Recall that the position on SERP cannot be continuous, but GSC gives you the average position! We used the ceiling function to round values to the next integer. We didn't use floor to be more conservative and avoiding overestimating the position. 
 
 As said in the introduction, CTR varies with position. In our 3-month sample, we can notice that getting the 1st position was crucial in terms of mean CTR and we can easily state that this is similar to what is reported by SEO studies about the relationship between position 
 and CTR. Please, note that pages at position 8 got even more than those at 6/7 and as much as 5 in our example. This also tells that aiming for the top spots is truly beneficial, since there is a clear gap in the first 3 positions and even more among position 1 and the rest.
@@ -125,6 +125,8 @@ corrplot(cor(gsc), , method = "color", col = col(200),
          p.mat = p.mat, sig.level = 0.01, insig = "blank",
          diag = FALSE)
 ```
+
+
 CTR is negatively correlated to clicks but the value is close to 0, so it's not that relevant. On contrary, there is a weak negative correlation between impressions and CTR, which makes sense, because CTR is inversely proportional to impressions. 
 The negative correlation between CTR and position is also sound because a lower position is usually associated with a higher CTR. Be careful however, correlation doesn't imply causation, we are just talking about linear association. 
 
@@ -161,10 +163,10 @@ train_Preds <- predict(lm_mod, train_gsc)
 Preds <- predict(lm_mod, test_gsc)
 ```
 
-Here follows
+Here follows a quick overview of the Linear Regression model. 
 
 ```{r Summary of Linear Regression}
-stargazer::stargazer(lm_mod, type = "text")
+stargazer(lm_mod, type = "text")
 ```
 
 By taking a quick look at the summary, we can clearly notice that converting variables to log or doing feature engineering would be a waste of time. 
@@ -195,6 +197,19 @@ reg_rmse_train <- rmse(train_gsc$ctr, train_Preds)
 reg_rmse_test <- rmse(test_gsc$ctr, Preds)
 reg_R2_train <- 1 - (sum((train_gsc$ctr-train_Preds)^2)/sum((train_gsc$ctr-mean(train_gsc$ctr))^2))
 reg_R2_test <- 1 - (sum((test_gsc$ctr-Preds)^2)/sum((test_gsc$ctr-mean(test_gsc$ctr))^2))
+
+
+Reg_visual <- tibble(
+  Dataset = c("train", "test"),
+  RMSE = c(reg_rmse_train, reg_rmse_test),
+  R_squared = c(reg_R2_train, reg_R2_test)
+)
+
+Reg_visual %>%
+  gt() %>%
+  tab_header(
+    title = md("Summary table for Linear Regression metrics")
+  )
 ```
 
 
@@ -220,8 +235,8 @@ summary(rand_gsc)
 ```{r Error vs Number of Trees - RF}
 plot(rand_gsc, main = "Random Forest")
 ```
-As you can see above, After ~10 trees, error starts to increase and then flatten as we move towards 500. We could also optimize the number of trees used by setting a lower number but the model is already fine this way. Please consider to test different combinations if you need to get better results. In our case, we could just reduce the number of tress to increase the speed of our algorithm.
 
+As you can see above, after ~10 trees, error starts to increase and then flatten as we move towards 500. We could also optimize the number of trees used by setting a lower number but the model is already fine this way. Please consider to test different combinations if you need to get better results. In our case, we could just reduce the number of trees to increase the speed of our algorithm. This is also part of hyperparameter tuning if you need to improve your model predictions.
 
 You may want to take a look at the importance of the variables according to Random Forest. We used the percentage of increase in MSE when a given variable variable is randomly permuted as a measure. 
 We can quickly notice that impressions and clicks are essential for our model, although either didn't show any strong correlation with CTR at the beginning of our analysis.
@@ -233,16 +248,28 @@ varImp <- importance(rand_gsc)
 varImpPlot(rand_gsc, type = 1, main = "Variable Importance")
 ```
 
+We can visualize how Random Forest performed by taking a look at the same metrics we used for Linear Regression. 
 
 ```{r Random Forest metrics}
 R2_train <- 1 - (sum((train_gsc$ctr-train_gsc$pred)^2)/sum((train_gsc$ctr-mean(train_gsc$ctr))^2))
 R2_test <- 1 - (sum((test_gsc$ctr-test_gsc$pred)^2)/sum((test_gsc$ctr-mean(test_gsc$ctr))^2))
 RMSE_train <- sqrt(mean( (train_gsc$ctr - train_gsc$pred)^2 ))
 RMSE_test<- sqrt(mean( (test_gsc$ctr - test_gsc$pred)^2 ))
+
+RF_visual <- tibble(
+  Dataset = c("train", "test"),
+  RMSE = c(RMSE_train, RMSE_test),
+  R_squared = c(R2_train, R2_test)
+)
+
+RF_visual %>%
+  gt() %>%
+  tab_header(
+    title = md("Summary table for Random Forest metrics")
+  )
+
 ```
 
-
-## Hyperparameter tuning for Random Forest
 
 We cold try to improve the performance of our RM model by tuning the mtry (i.e. number of variables randomly sampled as candidate at each split) hyperparameter, if we had more features to work with. We should not see that much difference in this example, since we just have 3 covariates and the default value for regression is set to p/3, where p is the number of features.
 
@@ -268,7 +295,6 @@ visual %>%
 ```
 
 
-
 ## Merge train and test
 
 Now that we have assessed that RM is a valid model, we can merge back train and test data sets, featuring the new columns with predicted values. Then, we can reorder the indexes of the new merged dataframe and create a new column that is given by the difference between the prediction of our model and the actual CTR times 100. Finally, we are ready to combine this dataframe with the one we started with, to recover pages and queries. 
@@ -288,10 +314,13 @@ We are now ready for the final step. We filter for the rows with values higher t
 ```{r Merge with original dataset}
 final_df <- final_df[, -c(1:2, 9:12)]
 final_df <- final_df[final_df$diff_perc > 0.00 ,]
+
 final_df <- final_df %>%
   arrange(desc(diff_perc))
+
 final_df$ctr <- final_df$ctr.x * 100
 final_df$pred <- final_df$pred * 100
+
 final_df <- final_df %>%
   group_by(page) %>%
   arrange(desc(diff_perc)) %>%
