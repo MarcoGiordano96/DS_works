@@ -13,7 +13,7 @@ At the moment, only CTR Optimisation project is cleared, although I will keep wo
     <ul>
       <li><a href = '#'>Sample report for Google Analytics</a>: A script to extract data from Google Analytics API and plot some data to quickly assess the situation of a website. E.g. top 10 articles by Page Views, Blog Development over time, Traffic sources, etc.</li>
       <li><a href = '#'>Detect Keyword cannibalization in Google Search Console</a>: A script to that extracts data from Google Search Console API and tells you which articles may suffer from keyword cannibalization.</li>
-      <li><a href = 'https://github.com/MarcoGiordano96/DS_works/blob/master/CTR%20Optimisation%20(GSC)/'>CTR Optimisation (Google Search Console) with Machine Learning</a>: A short script that produces a csv file which keywords you should optimize for.
+      <li><a href = 'https://github.com/MarcoGiordano96/DS_works/blob/master/CTR%20Optimisation%20(GSC)/'>CTR Optimisation (Google Search Console) with Machine Learning</a>: A short script that illustrated how you can choose which keywords you should optimize for.
       </li>
     </ul>
 </ul>
