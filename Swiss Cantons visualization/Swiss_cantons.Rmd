@@ -27,7 +27,7 @@ library(scales)
 We load the raw data into R, considering that the encoding must be "latin1", otherwise you are likely to get problems while visualizing umlauts!
 
 ```{r, include=FALSE} 
-swiss_data <- read.csv('Swiss_data_permanent_residents_def.csv', stringsAsFactors = F, encoding="latin1")
+swiss_data <- read.csv('~/DS_works/Swiss Cantons visualization/Data/Swiss_data_permanent_residents_def.csv', stringsAsFactors = F, encoding="latin1")
 ```
 
 After we load the raw data, we have to process them since they are unusable in this format. e have to split a column into multiple, using the semicolon as a separator and then converting each new column to the right datatype.
