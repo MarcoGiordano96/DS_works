@@ -31,7 +31,7 @@ At the moment, only CTR Optimisation project is cleared, although I will keep wo
     <h3>Data Cleaning, Analysis and Visualization
     </h3>
     <ul>
-      <li><a href = '#'> Swiss national data for households (Canton-level)</a>: 2 visually-appealing plots that describe the Cantons with most households and how many people they are made of.
+      <li><a href = 'https://github.com/MarcoGiordano96/DS_works/tree/master/Swiss%20Cantons%20visualization'> Swiss national data for households (Canton-level)</a>: 2 visually-appealing plots that describe the Cantons with most households and how many people they are made of.
       </li>
       <li><a href = '#'>Visualize the structure of a website</a>: Given a set of URLs, visualize the structure of your website with a tree!
       </li>
