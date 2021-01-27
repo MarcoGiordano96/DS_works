@@ -22,7 +22,7 @@ At the moment, only CTR Optimisation project is cleared, although I will keep wo
     <h3>Natural Language Processing
     </h3>
     <ul>
-      <li><a href = '#'Sentiment Analysis of Twitter data from UK politicians during COVID-19</a>:Multiple classification system for tweets from British politicians to higlight differences from right-wing and left-wing parties.
+      <li><a href = 'https://github.com/MarcoGiordano96/DS_works/tree/master/Sentiment%20Analysis%20Twitter/'>Sentiment Analysis of Twitter data from UK politicians during COVID-19</a> Multiple classification system for tweets from British politicians to higlight differences from right-wing and left-wing parties.
       </li>
     </ul>
  </ul>
