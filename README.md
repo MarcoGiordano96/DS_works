@@ -1,6 +1,6 @@
 # Data Science Portfolio
 [WIP, this repository is currently incomplete and will be updated again to store my projects]
-Repository containing my Data Science projects done for university, self-learning and other projects I took part in. The main language used is R, presented in form of R markdown.
+Repository containing my Data Science projects done for university, self-learning and other projects I took part in. The main language used is R, presented in form of R markdown. In a few weeks, I will also upload Python code in the form of Jupyter notebooks.
 
 At the moment, only CTR Optimisation project is cleared, although I will keep working on it.
 
