@@ -42,9 +42,4 @@ At the moment, only CTR Optimisation project is cleared, although I will keep wo
     <h3>Machine Learning [next]
     </h3>
  </ul>
- <ul>
-  <li>
-    <h3>SEO 
-    </h3>
- </ul>
  
